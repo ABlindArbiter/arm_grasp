@@ -2,6 +2,13 @@
 
 5 自由度舵机臂 + ZED-M 的视觉抓取项目。
 
+## 当前状态（2026-11-10）
+
+- 阶段：P0-W1 地基（硬件盘点 / ZED 环境 / 齐次变换 / 仓库），尚无抓取功能。
+- 证据入口：总账 `docs/plan/01_进度台账.md`；测试 `pc/tests/`；文档与照片 `docs/`；ZED 首帧 `pc/vision/data/frame_0001.npz`（Day 4 生成，本地文件，未进 git）。
+- 运行前提：Ubuntu 22.04 + ROS2 Humble + NVIDIA 40 系（`nvidia-smi` 正常）+ ZED-M。
+- 当前边界：P0 不接线通电；`firmware/` 与 `sim/` 暂为空，运动学从 P1、上电从 P2 开始。
+
 ## 架构
 
 ```
