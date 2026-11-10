@@ -1,0 +1,66 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# ---- C / 嵌入式 ----
+build/
+Debug/
+Release/
+*.o
+*.d
+*.elf
+*.bin
+*.hex
+*.map
+*.su
+
+# ---- ROS2 ----
+install/
+log/
+build/
+*.bag
+*.db3
+*.mcap
+*.yaml.bak
+
+# ---- 数据 / 模型 / 大文件（不进 git）----
+data/
+datasets/
+logs/
+*.csv
+*.npz
+*.npy
+*.onnx
+*.pt
+*.pth
+*.engine
+*.mp4
+*.avi
+*.mov
+
+# ---- 图片：默认忽略，但 docs/media 里的保留 ----
+*.png
+*.jpg
+*.jpeg
+*.gif
+!docs/media/
+!docs/media/*
+
+# ---- 密钥 / 环境 ----
+.env
+*.key
+*.pem
+secrets.yaml
+
+# ---- 编辑器 / 系统 ----
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
