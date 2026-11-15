@@ -55,7 +55,7 @@ for _ in range(200):
 # 4. 固定相机
 view = p.computeViewMatrixFromYawPitchRoll(
     cameraTargetPosition=[0.35, 0.0, 0.45],
-    distance=1.2,
+    distance=2.0,
     yaw=50,
     pitch=-20,
     roll=0,
@@ -77,7 +77,7 @@ for i in range(frames_total):
     theta = 2.0 * math.pi * i / (frames_total - 1)
     target = [
         0.42,
-        0.12 * math.sin(theta),
+        0.22 * math.sin(theta),
         0.52 + 0.04 * math.cos(theta),
     ]
 
