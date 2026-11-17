@@ -442,7 +442,8 @@
   </link>
 
   <joint name="tool0_fixed" type="fixed">
-    <origin xyz="0 0 0.135" rpy="0 0 0"/>
+    <!-- gripper 的局部 x 轴才是 tool 接近方向；把 tool0 的 z 转到 gripper x -->
+    <origin xyz="0.135 0 0" rpy="0 1.5708 0"/>
     <parent link="gripper"/>
     <child link="tool0"/>
   </joint>

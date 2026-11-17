@@ -12,7 +12,7 @@ joint axis positions at q=0 (base frame, m):
   joint 3 -> lower_arm  [0.0, 0.0, 0.123]
   joint 4 -> wrist      [0.0, -0.098, 0.123]
   joint 5 -> gripper    [0.0, -0.098, 0.123]
-  tool0   -> tool0      [0.0, 0.037, 0.123]
+  tool0   -> tool0      [0.0, -0.098, 0.258]     ; tool0 z=(0,0,1)，J4→TCP 135mm（接近轴）
 
 distances:
   J1->J2 (d1)        23.00 mm

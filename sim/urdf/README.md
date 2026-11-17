@@ -28,7 +28,7 @@ base
 | 3 | joint 3 | upper_arm → lower_arm | -0.100 0 0 | 0 0 1 | 0 .. 4.36332 | J3；`L2=100mm` |
 | 4 | joint 4 | lower_arm → wrist | -0.098 0 0 | 0 0 1 | 0 .. 4.18879 | J4；`L3=98mm` |
 | 5 | joint 5 | wrist → gripper | 0 0 0 | 0 0 1 | 0 .. 4.18879 | J5 roll；与 J4 共点（DH 约定） |
-| — | tool0_fixed | gripper → tool0 | 0 0 0.135 | — | fixed | `L4=135mm` 到 TCP |
+| — | tool0_fixed | gripper → tool0 | 0.135 0 0 | — | fixed | `L4=135mm` 到 TCP；rpy=0 90 0，tool0 z 对齐 gripper x（接近轴） |
 | — | joint 6 | gripper → jaw | stock | 0 0 1 | -0.174533 .. 1.74533 | 夹爪占位 |
 
 > `origin xyz` 是**父 link 系**里的平移；`rpy` 保留 stock 值（它决定关节轴方向，不在这里展开）。

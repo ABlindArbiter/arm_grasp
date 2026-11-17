@@ -2,7 +2,7 @@ import math
 
 import numpy as np
 
-from arm.kinematics import fk_dh, ik_analytic
+from arm.kinematics import fk_dh, ik_analytic, tool_axis
 
 
 def test_fk_checkpoints():
@@ -20,9 +20,9 @@ def test_fk_checkpoints():
 
 
 def test_ik_round_trip_tool_down():
-    """tool 竖直向下：每个可达点 2 解，FK 回代 < 1e-9 mm。"""
+    """alpha=-90：每个可达点 2 解，FK 回代 < 1e-9 mm。"""
     for target in [(150.0, 0.0, 0.0), (100.0, 0.0, 0.0), (120.0, 50.0, 20.0)]:
-        sols = ik_analytic(*target)
+        sols = ik_analytic(*target, alpha=-math.pi / 2)
         assert len(sols) == 2
         for s in sols:
             T = fk_dh(s["q"])
@@ -30,6 +30,29 @@ def test_ik_round_trip_tool_down():
             assert np.allclose(T[:3, 2], (0.0, 0.0, -1.0), atol=1e-9)
 
 
-def test_unreachable_with_tool_down():
-    """W5-1 的 target 在 tool 竖直向下时不可达；库 IK 是靠倾 tool 才到的。"""
-    assert ik_analytic(150.0, 0.0, 100.0) == []
+def test_ik_round_trip_tilted():
+    """alpha=-45：同一个 target 斜着抓，FK 回代仍然 < 1e-9 mm。"""
+    target = (150.0, 0.0, 100.0)
+    sols = ik_analytic(*target, alpha=-math.pi / 4)
+    assert len(sols) == 2
+    for s in sols:
+        T = fk_dh(s["q"])
+        assert np.allclose(T[:3, 3], target, atol=1e-9)
+        assert np.allclose(T[:3, 2], tool_axis(-math.pi / 4, 0.0), atol=1e-9)
+
+
+def test_alpha_zero_side_approach():
+    """alpha=0：水平朝外，tool z 应该是 (1,0,0)。"""
+    target = (150.0, 0.0, 0.0)
+    sols = ik_analytic(*target, alpha=0.0)
+    assert len(sols) == 2
+    for s in sols:
+        T = fk_dh(s["q"])
+        assert np.allclose(T[:3, 3], target, atol=1e-9)
+        assert np.allclose(T[:3, 2], (1.0, 0.0, 0.0), atol=1e-9)
+
+
+def test_tool_down_rejects_high_target():
+    """alpha=-90 够不到 z=100；换成 alpha=-45 就能到。"""
+    assert ik_analytic(150.0, 0.0, 100.0, alpha=-math.pi / 2) == []
+    assert len(ik_analytic(150.0, 0.0, 100.0, alpha=-math.pi / 4)) == 2

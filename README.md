@@ -4,8 +4,8 @@
 
 ## 当前状态（2026-11-17）
 
-- 阶段：**P1-W4**（测绘 / 仿真 / 运动学）；P0 已通过，P1-W3 主体完成。
-- 当前任务：把现成 **SO-ARM101** URDF 改成 `sim/urdf/arm5.urdf`（长度 / 限位 / 轴方向；限位和轴方向先占位）。
+- 阶段：**P1-W5**（运动学 / IK）；P0 已通过，P1-W4 完成。
+- 当前任务：5D 任务空间 `(x, y, z, α, φ)`；解析 IK 已支持 α（`α=-90°` 是基线特例）；W5-3 对比库 IK。
 - 证据入口：总账 `docs/plan/01_进度台账.md`；DH 表 `docs/dh_table.md`；关节树 `sim/urdf/stock_tree.txt`；测试 `pc/tests/`；ZED 首帧 `pc/vision/data/frame_0001.npz`（本地，未进 git）。
 - 运行前提：Ubuntu 22.04 + ROS2 Humble + NVIDIA 40 系（`nvidia-smi` 正常）+ ZED-M；仿真/运动学用项目 `.venv`（见“快速开始”）。
 - 当前边界：不接线通电（P2 才上电）；`firmware/` 仍为空。

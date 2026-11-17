@@ -1,4 +1,4 @@
-"""5 DOF 臂的 DH 正/逆运动学（tool 竖直向下）。
+"""5 DOF 臂的 DH 正/逆运动学（工具轴仰角 alpha 是入参）。
 
 约定
 ----
@@ -7,18 +7,19 @@
       T_i = Rz(theta_i) · Tz(d_i) · Tx(a_i) · Rx(alpha_i)
 - `q = [q1..q5]` 是 **DH 关节角**，不是舵机角，也不是 URDF 角。
   URDF 的零位和 DH 的零位差一个 `theta_offset`（W5/P2 再对齐）。
-- `ik_analytic(x, y, z, yaw)` 假设 **tool 轴竖直向下**；
-  返回 elbow-up / elbow-down 两组候选解；不可达时返回 []。
-- `yaw` 是夹爪开口方向（rad），先按 `q5 = yaw - q1` 约定；
-  这个约定 W5-3 用 FK 验证，可能差一个常数。
+- 任务空间是 **5 维**：`(x, y, z, alpha, phi)`
+      alpha：工具轴相对水平面的仰角；垂直向下 = -pi/2，水平朝外 = 0
+      phi  ：夹爪绕工具轴的自转（开口方向）
+  工具轴在 J1 的竖直平面内：方位角被 J1 锁死，仰角自由。
+- `alpha = -pi/2` 就是“垂直下抓”特例，原 baseline 不用推翻。
 
 阅读顺序
 --------
 1. `dh_transform` / `fk_dh`：先确认 4 个 FK 检查点。
-2. `_wrist_target`：为什么 tool 竖直向下时 z_w = z + L4。
+2. `tool_axis` / `_wrist_target`：为什么 `w = p - L4 * a(alpha)`。
 3. `_planar_2r`：余弦定理、两解、可达性。
-4. `ik_analytic`：q1 → q2/q3 → q4 → q5。
-5. `__main__`：4 个 FK 检查点 + IK 回代 + 你 W5-1 的 3 个 target 为什么无解。
+4. `ik_analytic`：q1 → 2R → q4 → q5。
+5. `__main__`：FK 检查点 + tool-down / 斜抓回代。
 """
 from __future__ import annotations
 
@@ -30,7 +31,7 @@ import numpy as np
 D1 = 23.0    # 底座台面 -> J2
 A2 = 100.0   # J2 -> J3
 A3 = 98.0    # J3 -> J4
-L4 = 135.0   # J4 -> TCP（tool 偏移）
+L4 = 135.0   # J4 -> TCP（工具偏移）
 
 # ---- 你的占位 limit（度，DH 角从机械下限算起）----
 LIMITS_DEG = [(0.0, 300.0), (0.0, 180.0), (0.0, 250.0), (0.0, 240.0), (0.0, 240.0)]
@@ -83,22 +84,51 @@ def fk_dh(q) -> np.ndarray:
     return T
 
 
-def _wrist_target(x: float, y: float, z: float) -> tuple[float, float, float]:
-    """tool 竖直向下时，J4 的位置。
+def tool_axis(alpha: float, q1: float) -> np.ndarray:
+    """工具轴单位向量 a(alpha)，在 J1 的竖直平面内。
 
-    TCP 在 J4 正下方 L4：
-        p_tcp = p_J4 + (0, 0, -L4)
-    =>  p_J4 = (x, y, z + L4)
+    alpha = -pi/2 -> (0, 0, -1)   垂直向下
+    alpha = 0     -> (cos q1, sin q1, 0)  水平朝外
+    alpha = pi    -> (-cos q1, -sin q1, 0) 水平朝基座
+    """
+    c, s = math.cos(alpha), math.sin(alpha)
+    return np.array([c * math.cos(q1), c * math.sin(q1), s])
+
+
+def _wrist_target(x: float, y: float, z: float, alpha: float):
+    """把带姿态的目标化成腕点：w = p - L4 * a(alpha)。
+
+    返回 (q1_arm, r_w, h, alpha_arm, ok)：
+    - q1_arm  ：腕点所在竖直平面的方位角（FK 里的 J1）
+    - r_w, h  ：平面 2R 的两个坐标
+    - alpha_arm：FK 里让工具轴等于 a(alpha) 的仰角（通常 = alpha；
+                 腕点在目标反侧时 = pi - alpha）
     """
     r = math.hypot(x, y)
-    z_w = z + L4
-    # 平面 2R 的 y 坐标：肩部在 z=D1，wrist 在 z_w
-    h = D1 - z_w
-    return r, h, z_w
+    q1 = math.atan2(y, x) if r > 1e-9 else 0.0
+    a = tool_axis(alpha, q1)
+
+    wx = x - L4 * a[0]
+    wy = y - L4 * a[1]
+    wz = z - L4 * a[2]
+
+    r_w = math.hypot(wx, wy)
+    if r_w < 1e-9:
+        # 腕点落在基座轴上：J1 奇异，没有唯一 q1
+        return q1, 0.0, D1 - wz, alpha, False
+
+    q1_arm = math.atan2(wy, wx)
+    if math.cos(q1_arm - q1) < 0.0:
+        # 腕点在目标反侧：a(pi - alpha) at q1+pi == a(alpha) at q1
+        alpha_arm = math.pi - alpha
+    else:
+        alpha_arm = alpha
+
+    return q1_arm, r_w, D1 - wz, alpha_arm, True
 
 
 def _planar_2r(r: float, h: float):
-    """平面 2R 逆解：返回 [(q2, q3), ...]，0/2 组。
+    """平面 2R 逆解：返回 [(q2, q3), ...]，0 或 2 组。
 
     r = A2 cos(q2) + A3 cos(q2+q3)
     h = A2 sin(q2) + A3 sin(q2+q3)
@@ -119,30 +149,31 @@ def _planar_2r(r: float, h: float):
     return sols
 
 
-def ik_analytic(x: float, y: float, z: float, yaw: float = 0.0):
-    """tool 竖直向下的 5 DOF 解析逆解。
+def ik_analytic(x: float, y: float, z: float, alpha: float = -math.pi / 2, phi: float = 0.0):
+    """5 DOF 解析逆解：目标 = TCP (x,y,z) + 工具仰角 alpha + 夹爪自转 phi。
 
-    参数：TCP 目标 (x, y, z) mm，夹爪 yaw rad。
-    返回：[{"q": [q1..q5], "elbow": "up"/"down"}, ...]
+    返回：[{"q": [q1..q5], "elbow": "up"/"down", "alpha": alpha}, ...]
           不可达时返回 []。
 
-    注意：
-    - q1 = atan2(y, x)。目标在基座正上方（r=0）时 q1 任意，这里取 0。
-    - q4 = pi - q2 - q3，让 tool 轴 = (0,0,-1)。
-    - q5 = yaw - q1，让夹爪绕 tool 轴转到目标 yaw（约定待 FK 验证）。
+    q4 用 DH 系推导：
+        tool z = (sin(q234) cos q1, sin(q234) sin q1, cos(q234))
+        令 q234 = pi/2 - alpha，则 tool z = (cos alpha cos q1, ..., sin alpha)
+        => q4 = pi/2 - alpha - q2 - q3
+    计划里的 `J4 = alpha - (J2+J3) - 零位偏置` 是关节角约定，
+    和这里的 DH q4 差一个常数，偏置吸收。
     """
-    r, h, _ = _wrist_target(x, y, z)
-
-    # r=0 时 atan2(0,0) 没有意义；这是 J1 奇异，取 q1=0 作为代表解
-    q1 = math.atan2(y, x) if r > 1e-9 else 0.0
+    q1_arm, r_w, h, alpha_arm, ok = _wrist_target(x, y, z, alpha)
+    if not ok:
+        return []
 
     sols = []
-    for q2, q3 in _planar_2r(r, h):
-        q4 = math.pi - q2 - q3          # tool 竖直向下
-        q5 = yaw - q1                   # 夹爪 yaw（约定）
+    for q2, q3 in _planar_2r(r_w, h):
+        q4 = math.pi / 2 - alpha_arm - q2 - q3
+        q5 = phi - q1_arm
         sols.append({
-            "q": [_wrap(q1), _wrap(q2), _wrap(q3), _wrap(q4), _wrap(q5)],
+            "q": [_wrap(q1_arm), _wrap(q2), _wrap(q3), _wrap(q4), _wrap(q5)],
             "elbow": "up" if q3 >= 0.0 else "down",
+            "alpha": alpha,
         })
     return sols
 
@@ -166,7 +197,7 @@ def _fmt_q(q) -> str:
 if __name__ == "__main__":
     print("=== 1) FK 检查点（DH 系，mm）===")
     cases = [
-        ([0, 0, 0, 0, 0],          (198.0, 0.0, 158.0), (0.0, 0.0, 1.0)),
+        ([0, 0, 0, 0, 0],           (198.0, 0.0, 158.0), (0.0, 0.0, 1.0)),
         ([0, 0, 0, math.pi / 2, 0], (333.0, 0.0, 23.0),  (1.0, 0.0, 0.0)),
         ([0, 0, 0, -math.pi / 2, 0], (63.0, 0.0, 23.0),  (-1.0, 0.0, 0.0)),
         ([0, math.pi / 2, 0, 0, 0], (135.0, 0.0, -175.0), (1.0, 0.0, 0.0)),
@@ -180,22 +211,29 @@ if __name__ == "__main__":
         print(f"q={_fmt_q(q)}  TCP={np.round(p, 3)}  err_p={ep:.2e} mm  "
               f"tool_z={np.round(z, 3)}  err_z={ez:.2e}")
 
-    print("\n=== 2) IK 回代（tool 竖直向下，可达点）===")
-    targets = [(150.0, 0.0, 0.0), (100.0, 0.0, 0.0), (120.0, 50.0, 20.0)]
-    for x, y, z in targets:
-        sols = ik_analytic(x, y, z, yaw=0.0)
+    print("\n=== 2) tool-down（alpha=-90）可达点 ===")
+    for x, y, z in [(150.0, 0.0, 0.0), (100.0, 0.0, 0.0), (120.0, 50.0, 20.0)]:
+        sols = ik_analytic(x, y, z, alpha=-math.pi / 2)
         print(f"\ntarget=({x}, {y}, {z})  ->  {len(sols)} solution(s)")
         for s in sols:
             T = fk_dh(s["q"])
             err = float(np.linalg.norm(T[:3, 3] - np.array([x, y, z])))
-            tz = T[:3, 2]
-            ok = within_placeholder_limits(s["q"])
-            print(f"  {s['elbow']:4s} q={_fmt_q(s['q'])}  "
-                  f"err={err:.2e} mm  tool_z={np.round(tz, 3)}  "
-                  f"limits={'OK' if ok else 'OUT'}")
+            print(f"  {s['elbow']:4s} q={_fmt_q(s['q'])}  err={err:.2e} mm  "
+                  f"tool_z={np.round(T[:3, 2], 3)}  "
+                  f"limits={'OK' if within_placeholder_limits(s['q']) else 'OUT'}")
 
-    print("\n=== 3) 你 W5-1 的 3 个 target：tool 竖直向下时 ===")
-    for x, y, z in [(150.0, 0.0, 100.0), (120.0, 100.0, 120.0), (180.0, -50.0, 80.0)]:
-        sols = ik_analytic(x, y, z, yaw=0.0)
-        print(f"target=({x}, {y}, {z})  ->  {len(sols)} solution(s)  "
-              f"{'（2R 够不到，库 IK 能到是因为它把 tool 倾了）' if not sols else ''}")
+    print("\n=== 3) 斜抓（alpha=-45）===")
+    for x, y, z in [(150.0, 0.0, 0.0), (150.0, 0.0, 100.0)]:
+        sols = ik_analytic(x, y, z, alpha=-math.pi / 4)
+        print(f"\ntarget=({x}, {y}, {z})  ->  {len(sols)} solution(s)")
+        for s in sols:
+            T = fk_dh(s["q"])
+            err = float(np.linalg.norm(T[:3, 3] - np.array([x, y, z])))
+            print(f"  {s['elbow']:4s} q={_fmt_q(s['q'])}  err={err:.2e} mm  "
+                  f"tool_z={np.round(T[:3, 2], 3)}  "
+                  f"limits={'OK' if within_placeholder_limits(s['q']) else 'OUT'}")
+
+    print("\n=== 4) W5-1 的 (150,0,100)：alpha=-90 vs alpha=-45 ===")
+    for a_deg in (-90, -45):
+        sols = ik_analytic(150.0, 0.0, 100.0, alpha=math.radians(a_deg))
+        print(f"alpha={a_deg:4d} deg  ->  {len(sols)} solution(s)")
