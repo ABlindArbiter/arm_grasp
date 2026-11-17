@@ -1,0 +1,38 @@
+# arm5.urdf verification (W4-3 / W4-4)
+# 2026-11-17
+# yourdfpy 0.0.60 / pybullet 3.2.7 / robot_descriptions 3.3.0
+
+model: arm5
+links: 8  joints: 7  actuated: 6
+actuated: ['6', '5', '4', '3', '2', '1']
+
+joint axis positions at q=0 (base frame, m):
+  joint 1 -> shoulder   [0.0, 0.0, 0.0]
+  joint 2 -> upper_arm  [0.0, 0.0, 0.023]
+  joint 3 -> lower_arm  [0.0, 0.0, 0.123]
+  joint 4 -> wrist      [0.0, -0.098, 0.123]
+  joint 5 -> gripper    [0.0, -0.098, 0.123]
+  tool0   -> tool0      [0.0, 0.037, 0.123]
+
+distances:
+  J1->J2 (d1)        23.00 mm
+  J2->J3 (L2)       100.00 mm
+  J3->J4 (L3)        98.00 mm
+  J4->J5              0.00 mm
+  J4->TCP (L4)      135.00 mm
+
+PyBullet:
+  getNumJoints = 7 (6 revolute + 1 fixed)
+  0: 1           REVOLUTE  limits=(0.00000, 5.23599)
+  1: 2           REVOLUTE  limits=(0.00000, 3.14159)
+  2: 3           REVOLUTE  limits=(0.00000, 4.36332)
+  3: 4           REVOLUTE  limits=(0.00000, 4.18879)
+  4: 5           REVOLUTE  limits=(0.00000, 4.18879)
+  5: 6           REVOLUTE  limits=(-0.17453, 1.74533)
+  6: tool0_fixed FIXED
+  joint 1 move test: target=0.5 -> state=0.497
+
+注意：
+- 这是 q=0 的 URDF 零位，不是你的机械下限；theta_offset 在 W5 对齐。
+- limits 是占位值；J1/J3 与 LX-15D 240° 的矛盾待复核。
+- mesh 是 SO-ARM101 占位，不是实物。
