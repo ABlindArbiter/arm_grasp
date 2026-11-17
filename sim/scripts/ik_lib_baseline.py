@@ -37,6 +37,10 @@ ee = 6  # tool0 link index
 lo = [-math.pi] * 6
 hi = [math.pi] * 6
 ranges = [2 * math.pi] * 6
+# 初值实验：
+# baseline:   rest = [0.0] * 6
+# bent elbow: rest = [0.0, -0.8, -1.2, -0.8, 0.0, 0.0]
+#   → target 2/3 降到 ~1mm，target 1 升到 14mm（局部最小，不是全局）
 rest = [0.0] * 6
 
 print(f"{'target (m)':28s} {'err_mm':>8s}  {'q1..q5 (deg)':38s}  tool_z")
