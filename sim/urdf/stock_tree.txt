@@ -1,0 +1,32 @@
+# SO-ARM101 (so101_new_calib) joint tree
+# 环境：.venv / yourdfpy 0.0.60 / robot_descriptions 3.3.0
+# 复现：
+#   from robot_descriptions.loaders.yourdfpy import load_robot_description
+#   robot = load_robot_description("so_arm101_description", load_meshes=False)
+#   print(robot.actuated_joint_names)
+
+model: so101_new_calib
+links: 7  joints: 6
+actuated: 6  ['6', '5', '4', '3', '2', '1']
+
+name  type      parent      child        axis (joint frame)  limit (rad)
+----  --------  ----------  -----------  ------------------  ---------------------
+1     revolute  base        shoulder     [0, 0, 1]           -1.91986 .. 1.91986
+2     revolute  shoulder    upper_arm    [0, 0, 1]           -1.74533 .. 1.74533
+3     revolute  upper_arm   lower_arm    [0, 0, 1]           -1.74533 .. 1.5708
+4     revolute  lower_arm   wrist        [0, 0, 1]           -1.65806 .. 1.65806
+5     revolute  wrist       gripper      [0, 0, 1]           -2.79253 .. 2.79253
+6     revolute  gripper     jaw          [0, 0, 1]           -0.174533 .. 1.74533
+
+# 暂定映射到实物：
+#   joint 1 -> J1 底座回转
+#   joint 2 -> J2 肩部
+#   joint 3 -> J3 肘部
+#   joint 4 -> J4 腕部俯仰
+#   joint 5 -> J5 腕部自转（roll）
+#   joint 6 -> G  夹爪开合
+#
+# 注意：
+# - 所有 axis 都是 [0,0,1] 是“关节局部系”的轴；物理方向由 joint origin 的 rpy 决定，
+#   不是直接写在 axis 里的。改 arm5.urdf 时不要只看 axis 三个数。
+# - 这里的 limit 是 SO-ARM101 原厂值（弧度），不是你的臂；W4-3 换成你的占位值。

@@ -1,0 +1,12 @@
+# P1 仿真 / 运动学 venv（Python 3.10）
+# 用法：source .venv/bin/activate && pip install -r requirements.txt
+#
+# 注意：这是项目 venv，不用于 ROS2 节点。
+# ROS2 Humble 的节点仍用系统 Python（/usr/bin/python3）。
+numpy==1.26.4
+scipy==1.11.4
+yourdfpy==0.0.60
+robot_descriptions==3.3.0
+pybullet==3.2.7
+pytest==9.2.0
+pillow==12.3.0

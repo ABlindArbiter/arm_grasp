@@ -2,12 +2,13 @@
 
 5 自由度舵机臂 + ZED-M 的视觉抓取项目。
 
-## 当前状态（2026-11-10）
+## 当前状态（2026-11-17）
 
-- 阶段：P0-W1 地基（硬件盘点 / ZED 环境 / 齐次变换 / 仓库），尚无抓取功能。
-- 证据入口：总账 `docs/plan/01_进度台账.md`；测试 `pc/tests/`；文档与照片 `docs/`；ZED 首帧 `pc/vision/data/frame_0001.npz`（Day 4 生成，本地文件，未进 git）。
-- 运行前提：Ubuntu 22.04 + ROS2 Humble + NVIDIA 40 系（`nvidia-smi` 正常）+ ZED-M。
-- 当前边界：P0 不接线通电；`firmware/` 与 `sim/` 暂为空，运动学从 P1、上电从 P2 开始。
+- 阶段：**P1-W4**（测绘 / 仿真 / 运动学）；P0 已通过，P1-W3 主体完成。
+- 当前任务：把现成 **SO-ARM101** URDF 改成 `sim/urdf/arm5.urdf`（长度 / 限位 / 轴方向；限位和轴方向先占位）。
+- 证据入口：总账 `docs/plan/01_进度台账.md`；DH 表 `docs/dh_table.md`；关节树 `sim/urdf/stock_tree.txt`；测试 `pc/tests/`；ZED 首帧 `pc/vision/data/frame_0001.npz`（本地，未进 git）。
+- 运行前提：Ubuntu 22.04 + ROS2 Humble + NVIDIA 40 系（`nvidia-smi` 正常）+ ZED-M；仿真/运动学用项目 `.venv`（见“快速开始”）。
+- 当前边界：不接线通电（P2 才上电）；`firmware/` 仍为空。
 
 ## 架构
 
@@ -19,7 +20,36 @@ PC（视觉 / 抓取 / 运动学） --USB--> STM32（安全转发层） --> ZLin
 
 ## 快速开始
 
-（待填：环境依赖、启动命令）
+### Python 环境（W4 起，仿真 / 运动学）
+
+项目用独立 venv，避免和 ROS2 Humble 的系统 Python 冲突：
+
+```bash
+cd ~/arm-grasp
+/usr/bin/python3 -m virtualenv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+验证：
+
+```bash
+python -c "import numpy, scipy, yourdfpy, robot_descriptions; print(numpy.__version__, scipy.__version__)"
+pytest -q pc/tests
+```
+
+> **ROS2 节点（P2 起）仍用系统 Python**；跑 `ros2` 前不要 `source .venv/bin/activate`。
+
+### 加载现成臂 / 看关节树
+
+```python
+from robot_descriptions.loaders.yourdfpy import load_robot_description
+
+robot = load_robot_description("so_arm101_description", load_meshes=False)
+print(robot.actuated_joint_names)
+```
+
+W4-2 的实际输出存在 `sim/urdf/stock_tree.txt`。
 
 ## 结果
 
@@ -29,5 +59,5 @@ PC（视觉 / 抓取 / 运动学） --USB--> STM32（安全转发层） --> ZLin
 
 - `pc/` 上位机
 - `firmware/` STM32
-- `sim/` PyBullet
+- `sim/` PyBullet；`sim/urdf/` 关节树与 `arm5.urdf`
 - `docs/` 文档与调试记录
