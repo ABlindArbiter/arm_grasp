@@ -142,10 +142,13 @@ def _planar_2r(r: float, h: float):
     c3 = (r * r + h * h - A2 * A2 - A3 * A3) / (2.0 * A2 * A3)
     if c3 < -1.0 - 1e-9 or c3 > 1.0 + 1e-9:
         return []                      # 太远 / 太近，2R 够不到
+
+    # 求肘角 q3
     c3 = max(-1.0, min(1.0, c3))
     q3_abs = math.acos(c3)
     sols = []
     for q3 in (q3_abs, -q3_abs):
+        # 求肩角 q2
         q2 = math.atan2(h, r) - math.atan2(A3 * math.sin(q3), A2 + A3 * math.cos(q3))
         sols.append((q2, q3))
     return sols
