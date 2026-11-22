@@ -394,7 +394,7 @@
 
   <!-- Joint from shoulder to upper_arm -->
   <joint name="2" type="revolute">
-    <origin xyz="0 0 -0.023" rpy="-1.5708 -1.5708 0"/>
+    <origin xyz="0 0 -0.019" rpy="-1.5708 -1.5708 0"/>
     <parent link="shoulder"/>
     <child link="upper_arm"/>
     <axis xyz="0 0 1"/>
