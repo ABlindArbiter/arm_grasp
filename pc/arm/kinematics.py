@@ -43,6 +43,7 @@ def _wrap(a: float) -> float:
 
 
 def rot_x(t: float) -> np.ndarray:
+    # 基础旋转矩阵，绕 X 轴旋转 t 弧度（未使用）
     c, s = math.cos(t), math.sin(t)
     return np.array([[1.0, 0.0, 0.0],
                      [0.0, c, -s],
@@ -50,6 +51,7 @@ def rot_x(t: float) -> np.ndarray:
 
 
 def rot_z(t: float) -> np.ndarray:
+    # 基础旋转矩阵，绕 Z 轴旋转 t 弧度（未使用）
     c, s = math.cos(t), math.sin(t)
     return np.array([[c, -s, 0.0],
                      [s, c, 0.0],
